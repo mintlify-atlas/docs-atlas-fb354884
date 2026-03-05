@@ -1,0 +1,77 @@
+{
+  "projectType": "saas",
+  "projectName": "Tabulador de Comisiones Tamivar",
+  "projectDescription": "A Next.js web application for calculating real estate commission distributions based on transaction scenarios.",
+  "theme": "almond",
+  "primaryColor": "#7c7c7c",
+  "lightColor": "#070707",
+  "darkColor": "#c4c4c4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/commission-calculator",
+              "features/sale-scenarios",
+              "features/rental-calculations",
+              "features/ticket-generation"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "guide/sale-transactions",
+              "guide/rental-transactions",
+              "guide/understanding-percentages",
+              "guide/team-scenarios"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": ["api/calculate"]
+          },
+          {
+            "group": "Core Functions",
+            "pages": [
+              "api/calculations",
+              "api/rules",
+              "api/types"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Commission calculation for property sales and rentals",
+    "Multi-scenario support (exclusive listings, team sales, external brokers)",
+    "Interactive questionnaire-based workflow",
+    "Automatic tax deduction (7%) in calculations",
+    "Downloadable commission ticket generation",
+    "Percentage-based distribution rules engine"
+  ],
+  "publicApiSurface": [
+    "POST /api/calculate",
+    "getBaseMontos()",
+    "getCasoPrincipal()",
+    "getPorcentajeFinal()",
+    "puedeVerResultadoVenta()",
+    "obtenerReparto()",
+    "calcularMontos()",
+    "buildTicketText()",
+    "formatMXN()",
+    "downloadTicketAsImage()"
+  ]
+}
