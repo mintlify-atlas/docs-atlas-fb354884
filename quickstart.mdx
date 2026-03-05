@@ -1,80 +1,292 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Start calculating commissions in minutes with the Tabulador de Comisiones Tamivar'
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+The Tabulador de Comisiones Tamivar is a commission calculator designed for real estate agents at Tamivar. It helps you quickly calculate your commission based on property sales and rentals, taking into account various scenarios such as exclusive listings, team collaborations, and external broker involvement.
 
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+**Key features:**
+- Calculate commissions for both **sales** (venta) and **rentals** (renta)
+- Support for multiple scenarios: exclusive listings, team sales, external brokers
+- Automatic tax deduction (7% already included in calculations)
+- Downloadable commission tickets for record-keeping
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+All commission calculations automatically include a 7% tax deduction. The amounts shown are the final amounts you'll receive after all deductions.
 </Note>
+
+## Accessing the Application
+
+The application is a Next.js web interface that runs in your browser.
+
+<Steps>
+  <Step title="Start the development server">
+    Navigate to the project directory and run:
+    
+    ```bash
+    npm run dev
+    ```
+    
+    Or use your preferred package manager:
+    
+    ```bash
+    yarn dev
+    # or
+    pnpm dev
+    # or
+    bun dev
+    ```
+  </Step>
+  
+  <Step title="Open in browser">
+    Open [http://localhost:3000](http://localhost:3000) in your web browser.
+    
+    You'll see the main interface with the title "Tabulador de comisiones" and an option to select between "Venta" (Sale) or "Renta" (Rental).
+  </Step>
+</Steps>
+
+## Calculating Commission for a Sale
+
+Let's walk through calculating a commission for a property sale with a concrete example.
+
+<Steps>
+  <Step title="Select operation type">
+    On the main screen, click the **"Venta"** (Sale) button to calculate a sale commission.
+  </Step>
+  
+  <Step title="Enter property details">
+    Fill in the sale information:
+    
+    - **Costo (MXN)**: Enter the property sale price, for example: `2800000` (2.8 million pesos)
+    - **Comision**: Select the commission percentage from the dropdown (1% to 10%), for example: `5%`
+    
+    The interface provides a dropdown with commission options from 1% to 10%.
+  </Step>
+  
+  <Step title="Answer scenario questions">
+    Answer three yes/no questions about the sale:
+    
+    - **"Es una propiedad exclusiva?"** (Is it an exclusive property?) - Select "Sí" or "No"
+    - **"Tu la enlistaste?"** (Did you list it?) - Select "Sí" or "No"
+    - **"Tu la vendiste?"** (Did you sell it?) - Select "Sí" or "No"
+    
+    <Info>
+    You must select "Sí" (Yes) for at least one question to get a valid commission calculation.
+    </Info>
+  </Step>
+</Steps>
+
+### Example Scenario 1: Exclusive Property (Maximum Commission)
+
+Let's calculate the commission for the best-case scenario:
+
+<Steps>
+  <Step title="Enter sale data">
+    - **Costo**: `2,800,000` MXN
+    - **Comision**: `5%`
+  </Step>
+  
+  <Step title="Answer scenario questions">
+    - **Exclusiva**: `Sí`
+    - **Enlistaste**: `Sí`
+    - **Vendiste**: `Sí`
+    
+    This triggers **"caso-70"** - the highest commission scenario.
+  </Step>
+  
+  <Step title="View results">
+    The system calculates:
+    
+    - **Comision principal**: 2,800,000 × 5% = 140,000 MXN
+    - **Comision neta** (with 7% tax deducted): 140,000 × 0.93 = 130,200 MXN
+    - **Your commission** (70% of net): 130,200 × 70% = **91,140 MXN**
+    
+    The interface displays: "Te corresponde el **70%** de la comision principal que equivale a: **91,140 MXN**"
+  </Step>
+  
+  <Step title="Download ticket">
+    Click the **"Descargar ticket"** button to download a commission breakdown as an image for your records.
+  </Step>
+</Steps>
+
+### Example Scenario 2: External Broker Listing
+
+Another common scenario involves properties listed by external brokers:
+
+<Steps>
+  <Step title="Enter sale data">
+    - **Costo**: `3,500,000` MXN
+    - **Comision**: `4%`
+  </Step>
+  
+  <Step title="Answer scenario questions">
+    - **Exclusiva**: `No`
+    - **Enlistaste**: `Sí`
+    - **Vendiste**: `Sí`
+    
+    This triggers **"caso-pregunta-broker-externo"**.
+  </Step>
+  
+  <Step title="Answer follow-up question">
+    A fourth question appears: **"FUE CON BROKER EXTERNO?"**
+    
+    Select **"Sí"** if an external broker was involved.
+  </Step>
+  
+  <Step title="View results">
+    The system calculates:
+    
+    - **Comision principal**: 3,500,000 × 4% = 140,000 MXN
+    - **Comision neta**: 140,000 × 0.93 = 130,200 MXN
+    - **Your commission** (10% of net): 130,200 × 10% = **13,020 MXN**
+    
+    <Note>
+    The result shows: "Puede subir a 20% segun tu seguimiento en el proceso" (Can increase to 20% based on your follow-up), which would be **26,040 MXN**.
+    </Note>
+  </Step>
+</Steps>
+
+### Example Scenario 3: Team Sale with Internal Advisor
+
+Working with another Tamivar advisor:
+
+<Steps>
+  <Step title="Enter sale data">
+    - **Costo**: `1,500,000` MXN
+    - **Comision**: `5%`
+  </Step>
+  
+  <Step title="Answer scenario questions">
+    - **Exclusiva**: `No`
+    - **Enlistaste**: `No`
+    - **Vendiste**: `Sí`
+    
+    This triggers **"caso-equipo-tipo-asesor"**.
+  </Step>
+  
+  <Step title="Answer team questions">
+    Two additional questions appear:
+    
+    **"Fue en equipo con otro asesor?"** - Select **"Sí"**
+    
+    **"Que tipo de asesor fue"** - Select:
+    - **"Interno"** for another Tamivar advisor
+    - **"Externo"** for an external advisor
+    - **"NA"** if not applicable
+    
+    For this example, select **"Interno"**.
+  </Step>
+  
+  <Step title="View results">
+    The system calculates:
+    
+    - **Comision principal**: 1,500,000 × 5% = 75,000 MXN
+    - **Comision neta**: 75,000 × 0.93 = 69,750 MXN
+    - **Each advisor's commission** (30% of net): 69,750 × 30% = **20,925 MXN**
+    
+    The interface shows: "A los dos asesores les corresponde el **30%** de la comision principal que equivale a: **20,925 MXN**"
+  </Step>
+</Steps>
+
+## Calculating Commission for a Rental
+
+Rental commissions are simpler to calculate - they use a flat 45% rate.
+
+<Steps>
+  <Step title="Select rental operation">
+    On the main screen, click the **"Renta"** (Rental) button.
+  </Step>
+  
+  <Step title="Enter rental cost">
+    Enter the rental cost in the **"Costo (MXN)"** field.
+    
+    For example: `18000` (18,000 pesos monthly rent)
+  </Step>
+  
+  <Step title="View instant results">
+    The system immediately calculates:
+    
+    - **Comision principal**: 18,000 MXN (the rental cost itself)
+    - **Comision neta** (with 7% tax): 18,000 × 0.93 = 16,740 MXN
+    - **Your commission** (45% of net): 16,740 × 45% = **7,533 MXN**
+    
+    The interface displays: "Te corresponde el **45%** de la comision principal que equivale a: **7,533 MXN**"
+  </Step>
+  
+  <Step title="Download ticket">
+    Click **"Descargar ticket"** to save the commission breakdown.
+  </Step>
+</Steps>
+
+## Commission Percentage Reference
+
+The system uses different commission percentages based on your scenario:
+
+| Scenario | Commission % | Code Reference |
+|----------|--------------|----------------|
+| Exclusive property (listed, sold by you) | **70%** | `caso-70` |
+| Non-exclusive, you listed and sold, no external broker | **65%** | `caso-pregunta-broker-externo` + `no` |
+| Exclusive, you didn't list, but sold | **45%** | `caso-45` |
+| Rental operation | **45%** | Fixed for all rentals |
+| Exclusive listing, sold by Tamivar colleague | **40%** | `caso-pregunta-vendio` + `tamivar` |
+| Team sale with internal advisor | **30%** each | `caso-equipo-tipo-asesor` + `interno` |
+| Non-exclusive, you sold alone | **25%** | `caso-equipo-tipo-asesor` + `no` + `na` |
+| Exclusive listing, sold by external broker | **15%** (up to 25%) | `caso-pregunta-vendio` + `broker-externo` |
+| You listed and sold, with external broker | **10%** (up to 20%) | `caso-pregunta-broker-externo` + `si` |
+| Team sale with external advisor | **7.5%** (up to 12.5%) | `caso-equipo-tipo-asesor` + `externo` |
+
+<Info>
+These percentages are defined in `lib/tabulador/calculations.ts:82-104` in the `getPorcentajeFinal` function.
+</Info>
+
+## Starting a New Calculation
+
+After viewing your results, click the **"Nueva simulacion"** button at the bottom to reset all fields and start a new calculation.
+
+## Common Questions
+
+<AccordionGroup>
+  <Accordion title="What happens if I select 'No' for all three scenario questions?">
+    The system will show an alert message: "Para que este sistema te pueda arrojar un dato concreto, debes colocar por lo menos un 'SI' en alguna de las opciones" (To get a concrete result, you must select at least one "YES").
+    
+    You'll need to click "Regresar" (Go back) and answer at least one question with "Sí".
+  </Accordion>
+  
+  <Accordion title="How is the 7% tax calculated?">
+    The system multiplies the principal commission by 0.93 to deduct 7% tax:
+    
+    ```typescript
+    const comisionNeta = comisionPrincipal * 0.93
+    ```
+    
+    This happens automatically in the `getBaseMontos` function in `lib/tabulador/calculations.ts:41`.
+  </Accordion>
+  
+  <Accordion title="Can commission percentages increase?">
+    Yes! Some scenarios show potential increases based on your involvement:
+    
+    - External broker listings: Can increase from 15% to **25%**
+    - With external broker: Can increase from 10% to **20%**
+    - Team with external advisor: Can increase from 7.5% to **12.5%** (additional 5%)
+    
+    These increases depend on your level of follow-up in the process.
+  </Accordion>
+  
+  <Accordion title="What file formats can I download?">
+    The "Descargar ticket" button downloads your commission breakdown as a PNG image that you can save or print for your records.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Understanding Scenarios" icon="map" href="/guide/understanding-percentages">
+    Learn about all commission scenarios and how they're calculated
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/calculate">
+    Explore the calculation functions and types used in the system
+  </Card>
+</CardGroup>

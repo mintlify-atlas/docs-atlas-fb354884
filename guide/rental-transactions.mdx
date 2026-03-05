@@ -1,0 +1,361 @@
+---
+title: 'Rental Transaction Commissions'
+description: 'Guide to calculating rental property commissions with simple fixed percentages'
+---
+
+# Rental Transaction Commissions
+
+Rental transactions in the Tabulador system have a simplified commission structure compared to sales. You receive a fixed percentage of the rental cost.
+
+## How Rental Commissions Work
+
+<Note>
+  Rental commissions are **45%** of the net amount after the 7% deduction for taxes and administrative costs.
+</Note>
+
+### The Simple Formula
+
+Unlike sale transactions with multiple scenarios, rental commissions follow a single calculation:
+
+<Steps>
+  <Step title="Start with Rental Cost">
+    The monthly rental cost is your starting point.
+    
+    **Example:** $18,000 MXN per month
+  </Step>
+
+  <Step title="Apply 7% Deduction">
+    Deduct 7% for taxes and administrative costs:
+    
+    ```
+    Net Amount = Rental Cost × 0.93
+    ```
+    
+    **Example:** $18,000 × 0.93 = $16,740
+  </Step>
+
+  <Step title="Calculate Your 45%">
+    You receive 45% of the net amount:
+    
+    ```
+    Your Commission = Net Amount × 0.45
+    ```
+    
+    **Example:** $16,740 × 0.45 = $7,533
+  </Step>
+</Steps>
+
+## Complete Calculation Example
+
+Let's walk through a real rental transaction:
+
+### Example 1: Standard Rental
+
+<CodeGroup>
+```javascript Calculation
+// Input
+const rentalCost = 18000 // MXN per month
+
+// Step 1: Calculate principal commission
+const principalCommission = rentalCost // $18,000
+
+// Step 2: Apply 7% deduction
+const netCommission = principalCommission * 0.93 // $16,740
+
+// Step 3: Calculate your 45%
+const yourCommission = netCommission * 0.45 // $7,533
+
+console.log(`Your commission: $${yourCommission.toFixed(2)} MXN`)
+// Output: Your commission: $7,533.00 MXN
+```
+
+```typescript Source Code
+// From calculations.ts:37-58
+export function getBaseMontos(costo: string, comision: string): BaseMontos {
+  const costoNum = Number(costo || 0)
+  const comisionNum = Number(comision || 0)
+  
+  // For rentals
+  const comisionPrincipalRenta = costoNum
+  const comisionNetaRenta = comisionPrincipalRenta * 0.93
+  const montoRenta = comisionNetaRenta * 0.45
+  
+  return {
+    costoNum,
+    comisionNum,
+    // ... other fields
+    comisionPrincipalRenta,
+    comisionNetaRenta,
+    montoRenta,
+  }
+}
+```
+</CodeGroup>
+
+**Breakdown:**
+- Rental Cost: **$18,000 MXN**
+- Principal Commission: **$18,000** (same as rental cost)
+- Net Commission (after 7% deduction): **$16,740**
+- **Your Payment: $7,533 MXN** (45% of net)
+
+### Example 2: Higher-End Rental
+
+<Accordion title="$45,000 MXN Monthly Rental">
+  **Input:**
+  - Monthly rental: $45,000 MXN
+  
+  **Calculation:**
+  1. Principal Commission: $45,000
+  2. Net Commission: $45,000 × 0.93 = $41,850
+  3. Your Commission: $41,850 × 0.45 = **$18,832.50 MXN**
+  
+  **Result:**
+  You receive **$18,832.50 MXN** for this rental transaction.
+</Accordion>
+
+### Example 3: Entry-Level Rental
+
+<Accordion title="$8,000 MXN Monthly Rental">
+  **Input:**
+  - Monthly rental: $8,000 MXN
+  
+  **Calculation:**
+  1. Principal Commission: $8,000
+  2. Net Commission: $8,000 × 0.93 = $7,440
+  3. Your Commission: $7,440 × 0.45 = **$3,348 MXN**
+  
+  **Result:**
+  You receive **$3,348 MXN** for this rental transaction.
+</Accordion>
+
+## Using the Tabulador App
+
+### Step-by-Step Process
+
+<Steps>
+  <Step title="Select Transaction Type">
+    On the home screen, click the **"Renta"** button:
+    
+    <Note>
+      The Renta option displays: "Calcular ticket directo por costo" (Calculate direct ticket by cost)
+    </Note>
+    
+    **Code Reference:** `page.tsx:167-172`
+  </Step>
+
+  <Step title="Enter Rental Cost">
+    Input the monthly rental amount in MXN:
+    
+    - Label: "Costo (MXN)"
+    - Placeholder: "Ej. 18000"
+    - Enter the full monthly rental cost
+    
+    **Code Reference:** `page.tsx:180-192`
+  </Step>
+
+  <Step title="View Results">
+    The system immediately shows:
+    
+    - Percentage explanation: "Te corresponde el **45%** de la comision principal"
+    - Your commission amount in large text
+    - Tax disclaimer at the bottom
+    
+    **Code Reference:** `page.tsx:195-211`
+  </Step>
+
+  <Step title="Download Ticket">
+    Click "Descargar ticket" to get a receipt with full breakdown:
+    
+    ```
+    DESGLOSE
+    
+    Operacion: RENTA
+    Costo: $18,000.00
+    Comision principal: $18,000.00
+    Comision neta (7% ya descontado): $16,740.00
+    
+    Te corresponde el 45% de la comision principal, equivalente a:
+    $7,533.00 MXN
+    
+    Comisiones sujetas a impuestos vigentes y descuentos de ley.
+    ```
+    
+    **Code Reference:** `calculations.ts:171-184`
+  </Step>
+</Steps>
+
+## Rental vs. Sale Commissions
+
+<Tabs>
+  <Tab title="Rental Transactions">
+    **Characteristics:**
+    - Fixed 45% commission
+    - No scenario questions
+    - Based on monthly rental cost
+    - Simpler calculation
+    - Faster processing
+    
+    **Best for:**
+    - Quick commission estimates
+    - Straightforward rental deals
+    - Property management commissions
+  </Tab>
+  
+  <Tab title="Sale Transactions">
+    **Characteristics:**
+    - Variable commission (7.5% to 70%)
+    - Multiple scenario questions
+    - Based on property sale price
+    - Complex calculation logic
+    - Depends on your involvement
+    
+    **Best for:**
+    - Property sales
+    - Exclusive listings
+    - Team collaborations
+    - Commission negotiations
+    
+    See [Sale Transactions](/guide/sale-transactions) for details.
+  </Tab>
+</Tabs>
+
+## Quick Reference Table
+
+| Rental Cost | Principal Commission | Net (after 7%) | Your 45% Commission |
+|-------------|---------------------|----------------|---------------------|
+| $5,000      | $5,000              | $4,650         | **$2,092.50**       |
+| $10,000     | $10,000             | $9,300         | **$4,185.00**       |
+| $15,000     | $15,000             | $13,950        | **$6,277.50**       |
+| $18,000     | $18,000             | $16,740        | **$7,533.00**       |
+| $20,000     | $20,000             | $18,600        | **$8,370.00**       |
+| $25,000     | $25,000             | $23,250        | **$10,462.50**      |
+| $30,000     | $30,000             | $27,900        | **$12,555.00**      |
+| $40,000     | $40,000             | $37,200        | **$16,740.00**      |
+| $50,000     | $50,000             | $46,500        | **$20,925.00**      |
+
+## Understanding the 7% Deduction
+
+<Note>
+  The 7% deduction covers:
+  - Taxes (impuestos)
+  - Administrative costs
+  - Legal fees
+  
+  This is automatically applied before calculating your commission.
+</Note>
+
+The deduction is defined in the system as:
+```
+Comision neta = Comision principal × 0.93
+```
+
+**Code Reference:** `calculations.ts:43`
+
+## When Results Are Displayed
+
+The system only shows results when the rental cost is greater than zero:
+
+```typescript
+const puedeVerResultadoRenta = useMemo(() => {
+  if (tipoOperacion !== "renta") return false
+  return baseMontos.costoNum > 0
+}, [baseMontos.costoNum, tipoOperacion])
+```
+
+**Code Reference:** `page.tsx:94-97`
+
+<Warning>
+  If you enter $0 or leave the field empty, the system will not display commission results. You must enter a valid rental cost.
+</Warning>
+
+## Ticket Download Feature
+
+The ticket provides a professional breakdown you can share with clients or save for records:
+
+<Accordion title="Ticket Contents">
+  **Header:**
+  - "DESGLOSE" (Breakdown)
+  
+  **Transaction Details:**
+  - Operation type: RENTA
+  - Rental cost (formatted in MXN)
+  - Principal commission
+  - Net commission with 7% deduction note
+  
+  **Your Commission:**
+  - Percentage explanation (45%)
+  - Final amount in MXN
+  
+  **Footer:**
+  - Tax disclaimer: "Comisiones sujetas a impuestos vigentes y descuentos de ley."
+  
+  **Code Reference:** `calculations.ts:171-184`
+</Accordion>
+
+## API Integration
+
+If you're integrating with the calculation system programmatically:
+
+```typescript
+import { getBaseMontos } from '@/lib/tabulador/calculations'
+
+// For rental transactions
+const rentalCost = "18000" // as string
+const commission = "0"     // not used for rentals
+
+const result = getBaseMontos(rentalCost, commission)
+
+console.log(result.montoRenta) // Your 45% commission
+// Output: 7533
+```
+
+**Important Fields:**
+- `comisionPrincipalRenta`: Principal commission (equals rental cost)
+- `comisionNetaRenta`: Net commission after 7% deduction
+- `montoRenta`: Your final 45% commission
+
+**Code Reference:** See [API Reference - getBaseMontos](/api/calculations#getbasemontos)
+
+## Common Questions
+
+<AccordionGroup>
+  <Accordion title="Why is the rental commission always 45%?">
+    The 45% rate is a fixed company policy for all rental transactions, regardless of property value or agent involvement. This simplifies calculations and ensures consistent compensation.
+  </Accordion>
+  
+  <Accordion title="Can the percentage increase like in sale transactions?">
+    No. Unlike sale transactions where percentages can increase based on your involvement (e.g., 15% → 25%), rental commissions remain fixed at 45%.
+  </Accordion>
+  
+  <Accordion title="Is the 7% deduction negotiable?">
+    No. The 7% deduction is mandatory and covers required taxes and administrative costs. It's applied before calculating your 45%.
+  </Accordion>
+  
+  <Accordion title="What if the rental includes utilities or services?">
+    Enter only the base rental cost, not including utilities, services, or deposits. The commission is calculated on the monthly rent amount.
+  </Accordion>
+  
+  <Accordion title="Do I need to answer scenario questions for rentals?">
+    No. Rental transactions skip all scenario questions (exclusive, listed, sold, etc.). You only need to enter the rental cost.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Sale Transactions" icon="house-circle-check" href="/guide/sale-transactions">
+    Learn about sale commission calculations with multiple scenarios
+  </Card>
+  
+  <Card title="Understanding Percentages" icon="percent" href="/guide/understanding-percentages">
+    Deep dive into how commission percentages work
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/calculations">
+    Technical documentation for developers
+  </Card>
+  
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Start using the Tabulador app
+  </Card>
+</CardGroup>

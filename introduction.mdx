@@ -1,0 +1,96 @@
+---
+title: "Introduction"
+description: "Welcome to Tabulador de Comisiones Tamivar - Calculate real estate commissions with precision"
+---
+
+## Overview
+
+Tabulador de Comisiones Tamivar is a Next.js web application designed for Tamivar real estate advisors to calculate commission distributions based on transaction scenarios. The application provides an interactive questionnaire-based workflow that determines the appropriate commission percentage based on factors like property exclusivity, listing responsibility, sales responsibility, and team collaboration.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in minutes with our setup guide
+  </Card>
+  <Card title="Sale Transactions" icon="house" href="/guide/sale-transactions">
+    Learn how to calculate commissions for property sales
+  </Card>
+  <Card title="Rental Transactions" icon="key" href="/guide/rental-transactions">
+    Calculate commissions for rental properties
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/calculate">
+    Explore the calculation API endpoints
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Commission Calculator" icon="calculator" href="/features/commission-calculator">
+    Calculate commissions for both sales (1-10% customizable) and rentals (45% fixed rate)
+  </Card>
+  <Card title="Multi-Scenario Support" icon="diagram-project" href="/features/sale-scenarios">
+    Handle exclusive listings, team sales, external brokers, and various transaction scenarios
+  </Card>
+  <Card title="Interactive Workflow" icon="list-check" href="/guide/sale-transactions">
+    Answer scenario-based questions to determine the correct commission percentage
+  </Card>
+  <Card title="Automatic Tax Deduction" icon="percent" href="/guide/understanding-percentages">
+    All calculations include automatic 7% tax deduction applied to commission totals
+  </Card>
+  <Card title="Ticket Generation" icon="file-invoice" href="/features/ticket-generation">
+    Download commission breakdown tickets as images for record keeping
+  </Card>
+  <Card title="Rules Engine" icon="gears" href="/api/rules">
+    Percentage-based distribution system with flexible business logic
+  </Card>
+</CardGroup>
+
+## How It Works
+
+The application guides you through a series of questions to determine the correct commission split:
+
+1. **Select Transaction Type**: Choose between property sale or rental
+2. **Enter Transaction Details**: Provide the property cost and commission percentage
+3. **Answer Scenario Questions**: Respond to questions about exclusivity, listing, and sales responsibility
+4. **Review Calculation**: See your commission percentage and final amount after tax deductions
+5. **Download Ticket**: Generate a downloadable ticket with the full breakdown
+
+<Note>
+All commission calculations automatically include a 7% tax deduction. The final amount displayed is what you will receive after taxes.
+</Note>
+
+## Transaction Types
+
+### Property Sales
+
+For property sales, commissions range from 1-10% of the property value (customizable). The final percentage you receive depends on:
+
+- Whether the property is an exclusive listing
+- Whether you listed the property
+- Whether you sold the property
+- If working with external brokers
+- If working in a team with other advisors
+
+### Property Rentals
+
+For rental properties, the calculation is simpler:
+- You receive 45% of the monthly rental cost
+- This is a fixed percentage for all rental transactions
+- 7% tax is automatically deducted from this amount
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="play" href="/quickstart">
+    Follow our step-by-step guide to start calculating commissions
+  </Card>
+  <Card title="Understanding Percentages" icon="chart-line" href="/guide/understanding-percentages">
+    Learn how commission percentages are determined for different scenarios
+  </Card>
+  <Card title="Team Scenarios" icon="users" href="/guide/team-scenarios">
+    Understand how commissions work when collaborating with other advisors
+  </Card>
+  <Card title="API Documentation" icon="book-open" href="/api/calculate">
+    Integrate the commission calculator into your own applications
+  </Card>
+</CardGroup>

@@ -1,0 +1,198 @@
+---
+title: Commission Calculator
+description: Overview of the commission calculation system in Tabulador de Comisiones Tamivar
+---
+
+## Overview
+
+The Tabulador de Comisiones Tamivar is a specialized calculator designed to determine real estate agent commissions based on transaction type (sale or rental), property exclusivity, and various business scenarios.
+
+<CardGroup cols={2}>
+  <Card title="Sale Transactions" icon="house" href="/features/sale-scenarios">
+    Calculate commissions for property sales with dynamic percentages based on exclusivity, listing, and closing scenarios.
+  </Card>
+  <Card title="Rental Transactions" icon="key" href="/features/rental-calculations">
+    Simple 45% commission calculation for rental properties.
+  </Card>
+</CardGroup>
+
+## Core Calculation Components
+
+The system is built on three main calculation functions found in `lib/tabulador/calculations.ts`:
+
+### 1. Base Amount Calculation
+
+The `getBaseMontos()` function calculates the foundation amounts for all commission scenarios:
+
+```typescript
+export function getBaseMontos(costo: string, comision: string): BaseMontos {
+  const costoNum = Number(costo || 0)
+  const comisionNum = Number(comision || 0)
+  const comisionPrincipal = (costoNum * comisionNum) / 100
+  const comisionNeta = comisionPrincipal * 0.93  // 7% tax deduction
+  const comisionPrincipalRenta = costoNum
+  const comisionNetaRenta = comisionPrincipalRenta * 0.93
+  const montoRenta = comisionNetaRenta * 0.45
+
+  return {
+    costoNum,
+    comisionNum,
+    comisionPrincipal,
+    comisionNeta,
+    comisionPrincipalRenta,
+    comisionNetaRenta,
+    montoRenta,
+    montoPotencial25: comisionNeta * 0.25,
+    montoPotencial20: comisionNeta * 0.2,
+    montoPotencial5: comisionNeta * 0.05,
+  }
+}
+```
+
+<Note>
+The 7% tax deduction is automatically applied to calculate `comisionNeta` from `comisionPrincipal`. All final commission calculations use the net amount after this deduction.
+</Note>
+
+### 2. Scenario Detection
+
+The `getCasoPrincipal()` function determines which business scenario applies based on three yes/no questions:
+
+```typescript
+export function getCasoPrincipal(
+  exclusiva: OpcionSiNo | null,
+  enlistaste: OpcionSiNo | null,
+  vendiste: OpcionSiNo | null
+): CasoPrincipal | null {
+  if (exclusiva === "si" && enlistaste === "si" && vendiste === "si") 
+    return "caso-70"
+  if (exclusiva === "no" && enlistaste === "no" && vendiste === "si") 
+    return "caso-equipo-tipo-asesor"
+  if (exclusiva === "no" && enlistaste === "si" && vendiste === "si") 
+    return "caso-pregunta-broker-externo"
+  if (exclusiva === "si" && enlistaste === "no" && vendiste === "si") 
+    return "caso-45"
+  if (exclusiva === "si" && enlistaste === "si" && vendiste === "no") 
+    return "caso-pregunta-vendio"
+  return null
+}
+```
+
+### 3. Final Percentage Calculation
+
+The `getPorcentajeFinal()` function returns the agent's commission percentage based on the detected scenario:
+
+```typescript
+export function getPorcentajeFinal(params: {
+  casoPrincipal: CasoPrincipal | null
+  fueConBrokerExterno: FueConBrokerExterno | null
+  fueEnEquipoConOtroAsesor: OpcionSiNo | null
+  quienVendio: QuienVendio | null
+  tipoAsesorEquipo: TipoAsesorEquipo
+}) {
+  const { casoPrincipal, fueConBrokerExterno, fueEnEquipoConOtroAsesor, 
+          quienVendio, tipoAsesorEquipo } = params
+
+  if (casoPrincipal === "caso-70") return 70
+  if (casoPrincipal === "caso-45") return 45
+  if (casoPrincipal === "caso-pregunta-broker-externo" && fueConBrokerExterno === "no") 
+    return 65
+  if (casoPrincipal === "caso-pregunta-broker-externo" && fueConBrokerExterno === "si") 
+    return 10
+  // ... more scenarios
+  return null
+}
+```
+
+## How Commissions Are Calculated
+
+The final commission amount follows this formula:
+
+<Steps>
+  <Step title="Calculate Principal Commission">
+    `comisionPrincipal = propertyPrice × commissionPercentage ÷ 100`
+  </Step>
+  <Step title="Apply 7% Tax Deduction">
+    `comisionNeta = comisionPrincipal × 0.93`
+  </Step>
+  <Step title="Apply Agent Percentage">
+    `montoFinal = comisionNeta × agentPercentage ÷ 100`
+  </Step>
+</Steps>
+
+### Example Calculation
+
+<Accordion title="Example: Exclusive property, agent listed and sold">
+  **Scenario:** 
+  - Property price: $2,800,000 MXN
+  - Commission rate: 5%
+  - Exclusive property: Yes
+  - Agent listed: Yes
+  - Agent sold: Yes
+  - **Result:** caso-70 (70% commission)
+
+  **Calculation:**
+  ```
+  comisionPrincipal = 2,800,000 × 5 ÷ 100 = 140,000 MXN
+  comisionNeta = 140,000 × 0.93 = 130,200 MXN
+  montoFinal = 130,200 × 70 ÷ 100 = 91,140 MXN
+  ```
+
+  The agent receives **91,140 MXN**.
+</Accordion>
+
+<Accordion title="Example: Non-exclusive, agent listed and sold, with external broker">
+  **Scenario:**
+  - Property price: $3,500,000 MXN
+  - Commission rate: 4%
+  - Exclusive property: No
+  - Agent listed: Yes
+  - Agent sold: Yes
+  - External broker involved: Yes
+  - **Result:** caso-pregunta-broker-externo with broker (10% commission)
+
+  **Calculation:**
+  ```
+  comisionPrincipal = 3,500,000 × 4 ÷ 100 = 140,000 MXN
+  comisionNeta = 140,000 × 0.93 = 130,200 MXN
+  montoFinal = 130,200 × 10 ÷ 100 = 13,020 MXN
+  ```
+
+  The agent receives **13,020 MXN** (can increase to 20% with follow-up).
+</Accordion>
+
+## Tax Deduction Details
+
+<Warning>
+All calculations automatically deduct 7% for taxes before calculating the agent's final commission. This is implemented as:
+
+```typescript
+const comisionNeta = comisionPrincipal * 0.93
+```
+
+The constant `LEYENDA_IMPUESTOS` displays: "*Este monto ya tiene el 7% de impuestos descontado" (This amount already has the 7% tax deducted).
+</Warning>
+
+## Available Scenarios
+
+The calculator supports 5 main scenarios for sale transactions:
+
+| Scenario Code | Commission % | Conditions |
+|---------------|--------------|------------|
+| `caso-70` | 70% | Exclusive, agent listed, agent sold |
+| `caso-45` | 45% | Exclusive, agent didn't list, agent sold |
+| `caso-equipo-tipo-asesor` | 25-30% | Non-exclusive, agent only sold (varies by team) |
+| `caso-pregunta-broker-externo` | 10-65% | Non-exclusive, agent listed and sold (varies by broker) |
+| `caso-pregunta-vendio` | 15-40% | Exclusive, agent listed, another party sold |
+
+For detailed breakdowns of each scenario, see [Sale Scenarios](/features/sale-scenarios).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Sale Scenarios" icon="chart-line" href="/features/sale-scenarios">
+    Learn about all 7 sale transaction scenarios and their commission structures
+  </Card>
+  <Card title="Download Tickets" icon="download" href="/features/ticket-generation">
+    Generate and download commission calculation tickets
+  </Card>
+</CardGroup>

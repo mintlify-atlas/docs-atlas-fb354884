@@ -1,0 +1,474 @@
+---
+title: "Type Definitions"
+description: "TypeScript types and interfaces for the Tabulador system"
+---
+
+Complete type definitions used throughout the Tabulador de Comisiones system.
+
+## Core Types
+
+### TipoOperacion
+
+Defines the type of real estate operation.
+
+```typescript
+type TipoOperacion = "venta" | "renta"
+```
+
+<ParamField path="value" type="string">
+  - `"venta"` - Sale operation
+  - `"renta"` - Rental operation
+</ParamField>
+
+**Usage:**
+```typescript
+const operacion: TipoOperacion = "venta"
+```
+
+---
+
+### OpcionSiNo
+
+Standard yes/no option type for questionnaire responses.
+
+```typescript
+type OpcionSiNo = "si" | "no"
+```
+
+<ParamField path="value" type="string">
+  - `"si"` - Yes
+  - `"no"` - No
+</ParamField>
+
+**Usage:**
+```typescript
+const exclusiva: OpcionSiNo = "si"
+const enlistaste: OpcionSiNo = "no"
+```
+
+---
+
+### QuienVendio
+
+Indicates who made the final sale.
+
+```typescript
+type QuienVendio = "broker-externo" | "tamivar"
+```
+
+<ParamField path="value" type="string">
+  - `"broker-externo"` - External broker made the sale
+  - `"tamivar"` - Tamivar made the sale
+</ParamField>
+
+**Usage:**
+```typescript
+const vendedor: QuienVendio = "tamivar"
+```
+
+---
+
+### FueConBrokerExterno
+
+Indicates whether an external broker was involved.
+
+```typescript
+type FueConBrokerExterno = "si" | "no"
+```
+
+<ParamField path="value" type="string">
+  - `"si"` - Yes, external broker was involved
+  - `"no"` - No external broker
+</ParamField>
+
+**Usage:**
+```typescript
+const conBroker: FueConBrokerExterno = "no"
+```
+
+---
+
+### TipoAsesorEquipo
+
+Defines the type of advisor in team operations.
+
+```typescript
+type TipoAsesorEquipo = "interno" | "externo" | "na"
+```
+
+<ParamField path="value" type="string">
+  - `"interno"` - Internal Tamivar advisor
+  - `"externo"` - External advisor/broker
+  - `"na"` - Not applicable (solo operation)
+</ParamField>
+
+**Usage:**
+```typescript
+const tipoAsesor: TipoAsesorEquipo = "interno"
+```
+
+---
+
+### CasoPrincipal
+
+Defines the main case scenario for commission calculation.
+
+```typescript
+type CasoPrincipal =
+  | "caso-70"
+  | "caso-equipo-tipo-asesor"
+  | "caso-pregunta-broker-externo"
+  | "caso-45"
+  | "caso-pregunta-vendio"
+```
+
+<ParamField path="value" type="string">
+  - `"caso-70"` - 70% commission scenario (exclusive, listed, and sold by advisor)
+  - `"caso-equipo-tipo-asesor"` - Team-based scenario
+  - `"caso-pregunta-broker-externo"` - External broker question scenario
+  - `"caso-45"` - 45% commission scenario (exclusive, not listed, sold)
+  - `"caso-pregunta-vendio"` - Who sold question scenario
+</ParamField>
+
+**Usage:**
+```typescript
+const caso: CasoPrincipal = "caso-70"
+```
+
+### Case Mapping
+
+| Case | Conditions | Base Commission |
+|------|-----------|----------------|
+| caso-70 | Exclusiva=Si, Enlistaste=Si, Vendiste=Si | 70% |
+| caso-45 | Exclusiva=Si, Enlistaste=No, Vendiste=Si | 45% |
+| caso-equipo-tipo-asesor | Exclusiva=No, Enlistaste=No, Vendiste=Si | Variable (7.5%-30%) |
+| caso-pregunta-broker-externo | Exclusiva=No, Enlistaste=Si, Vendiste=Si | 10% or 65% |
+| caso-pregunta-vendio | Exclusiva=Si, Enlistaste=Si, Vendiste=No | 15% or 40% |
+
+---
+
+## Complex Types
+
+### Reparto
+
+Defines commission distribution percentages between parties.
+
+```typescript
+type Reparto = {
+  asesor: number
+  tamivar: number
+  broker?: number
+}
+```
+
+<ResponseField name="Reparto" type="object">
+  <ResponseField name="asesor" type="number" required>
+    Percentage for the advisor (0-70)
+  </ResponseField>
+  
+  <ResponseField name="tamivar" type="number" required>
+    Percentage for Tamivar (20-70)
+  </ResponseField>
+  
+  <ResponseField name="broker" type="number" optional>
+    Percentage for external broker (only when applicable)
+  </ResponseField>
+</ResponseField>
+
+**Example:**
+```typescript
+const reparto: Reparto = {
+  asesor: 70,
+  tamivar: 30
+}
+
+const repartoConBroker: Reparto = {
+  asesor: 30,
+  tamivar: 20,
+  broker: 50
+}
+```
+
+---
+
+### EscenarioInput
+
+Input parameters for determining commission distribution rules.
+
+```typescript
+type EscenarioInput = {
+  exclusiva: boolean
+  origenCliente: "asesor" | "tamivar" | "broker"
+  origenPropiedad: "asesor" | "tamivar" | "externa"
+  cierreEquipo: boolean
+}
+```
+
+<ResponseField name="EscenarioInput" type="object">
+  <ResponseField name="exclusiva" type="boolean" required>
+    Whether the property had exclusivity agreement
+  </ResponseField>
+  
+  <ResponseField name="origenCliente" type="'asesor' | 'tamivar' | 'broker'" required>
+    Origin of the client
+  </ResponseField>
+  
+  <ResponseField name="origenPropiedad" type="'asesor' | 'tamivar' | 'externa'" required>
+    Origin of the property
+  </ResponseField>
+  
+  <ResponseField name="cierreEquipo" type="boolean" required>
+    Whether the sale was closed by a team
+  </ResponseField>
+</ResponseField>
+
+**Example:**
+```typescript
+const escenario: EscenarioInput = {
+  exclusiva: true,
+  origenCliente: "asesor",
+  origenPropiedad: "asesor",
+  cierreEquipo: false
+}
+```
+
+---
+
+### BaseMontos
+
+Base monetary calculations for a commission.
+
+```typescript
+type BaseMontos = {
+  costoNum: number
+  comisionNum: number
+  comisionPrincipal: number
+  comisionNeta: number
+  comisionPrincipalRenta: number
+  comisionNetaRenta: number
+  montoRenta: number
+  montoPotencial25: number
+  montoPotencial20: number
+  montoPotencial5: number
+}
+```
+
+<ResponseField name="BaseMontos" type="object">
+  <ResponseField name="costoNum" type="number">
+    Numeric value of the property cost
+  </ResponseField>
+  
+  <ResponseField name="comisionNum" type="number">
+    Numeric value of the commission percentage
+  </ResponseField>
+  
+  <ResponseField name="comisionPrincipal" type="number">
+    Principal commission: `(costoNum * comisionNum) / 100`
+  </ResponseField>
+  
+  <ResponseField name="comisionNeta" type="number">
+    Net commission after 7% deduction: `comisionPrincipal * 0.93`
+  </ResponseField>
+  
+  <ResponseField name="comisionPrincipalRenta" type="number">
+    Principal commission for rent (equals costoNum)
+  </ResponseField>
+  
+  <ResponseField name="comisionNetaRenta" type="number">
+    Net rent commission: `comisionPrincipalRenta * 0.93`
+  </ResponseField>
+  
+  <ResponseField name="montoRenta" type="number">
+    Final rent amount (45%): `comisionNetaRenta * 0.45`
+  </ResponseField>
+  
+  <ResponseField name="montoPotencial25" type="number">
+    Potential 25% of net commission
+  </ResponseField>
+  
+  <ResponseField name="montoPotencial20" type="number">
+    Potential 20% of net commission
+  </ResponseField>
+  
+  <ResponseField name="montoPotencial5" type="number">
+    Potential 5% of net commission
+  </ResponseField>
+</ResponseField>
+
+**Example:**
+```typescript
+import { getBaseMontos } from './lib/tabulador/calculations'
+
+const montos: BaseMontos = getBaseMontos('5000000', '3')
+console.log(montos.comisionPrincipal) // 150000
+console.log(montos.comisionNeta) // 139500
+```
+
+---
+
+### TicketInput
+
+Complete input for generating commission result tickets.
+
+```typescript
+type TicketInput = BaseMontos & {
+  casoPrincipal: CasoPrincipal | null
+  fueConBrokerExterno: FueConBrokerExterno | null
+  fueEnEquipoConOtroAsesor: OpcionSiNo | null
+  porcentajeFinal: number | null
+  puedeVerResultado: boolean
+  puedeVerResultadoRenta: boolean
+  quienVendio: QuienVendio | null
+  tipoAsesorEquipo: TipoAsesorEquipo
+  tipoOperacion: TipoOperacion | null
+}
+```
+
+<ResponseField name="TicketInput" type="object">
+  <ResponseField name="...BaseMontos" type="BaseMontos">
+    All base monetary amounts (inherited)
+  </ResponseField>
+  
+  <ResponseField name="casoPrincipal" type="CasoPrincipal | null">
+    The determined case scenario
+  </ResponseField>
+  
+  <ResponseField name="fueConBrokerExterno" type="FueConBrokerExterno | null">
+    Whether external broker was involved
+  </ResponseField>
+  
+  <ResponseField name="fueEnEquipoConOtroAsesor" type="OpcionSiNo | null">
+    Whether it was a team operation
+  </ResponseField>
+  
+  <ResponseField name="porcentajeFinal" type="number | null">
+    The final calculated commission percentage
+  </ResponseField>
+  
+  <ResponseField name="puedeVerResultado" type="boolean">
+    Whether sale results can be displayed
+  </ResponseField>
+  
+  <ResponseField name="puedeVerResultadoRenta" type="boolean">
+    Whether rent results can be displayed
+  </ResponseField>
+  
+  <ResponseField name="quienVendio" type="QuienVendio | null">
+    Who made the sale
+  </ResponseField>
+  
+  <ResponseField name="tipoAsesorEquipo" type="TipoAsesorEquipo">
+    Type of advisor in team operations
+  </ResponseField>
+  
+  <ResponseField name="tipoOperacion" type="TipoOperacion | null">
+    Type of operation (sale or rent)
+  </ResponseField>
+</ResponseField>
+
+**Example:**
+```typescript
+import { buildTicketText } from './lib/tabulador/calculations'
+import { getBaseMontos } from './lib/tabulador/calculations'
+
+const montos = getBaseMontos('5000000', '3')
+
+const ticketInput: TicketInput = {
+  ...montos,
+  casoPrincipal: 'caso-70',
+  fueConBrokerExterno: null,
+  fueEnEquipoConOtroAsesor: null,
+  porcentajeFinal: 70,
+  puedeVerResultado: true,
+  puedeVerResultadoRenta: false,
+  quienVendio: null,
+  tipoAsesorEquipo: 'na',
+  tipoOperacion: 'venta'
+}
+
+const ticket = buildTicketText(ticketInput)
+```
+
+---
+
+## Type Usage Guide
+
+### Simple Types (Literal Unions)
+
+Use these for straightforward yes/no or categorical values:
+
+```typescript
+import type { OpcionSiNo, TipoOperacion } from './lib/tabulador/types'
+
+function procesarOperacion(
+  tipo: TipoOperacion,
+  exclusiva: OpcionSiNo
+) {
+  if (tipo === "venta" && exclusiva === "si") {
+    // Handle exclusive sale
+  }
+}
+```
+
+### Complex Types (Objects)
+
+Use these for structured data:
+
+```typescript
+import type { Reparto, EscenarioInput } from './lib/tabulador/types'
+import { obtenerReparto } from './lib/rules'
+
+const input: EscenarioInput = {
+  exclusiva: true,
+  origenCliente: "asesor",
+  origenPropiedad: "asesor",
+  cierreEquipo: false
+}
+
+const resultado: Reparto = obtenerReparto(input)
+```
+
+### Nullable Types
+
+Many types allow `null` to represent incomplete or pending data:
+
+```typescript
+import type { CasoPrincipal } from './lib/tabulador/types'
+
+let caso: CasoPrincipal | null = null
+
+// ... after user answers questions
+caso = getCasoPrincipal(exclusiva, enlistaste, vendiste)
+
+if (caso !== null) {
+  // Safe to use caso
+}
+```
+
+---
+
+## Type Relationships
+
+```
+TipoOperacion
+    ├─> "venta" ──> Uses: CasoPrincipal, BaseMontos
+    └─> "renta" ──> Uses: BaseMontos (different calculation)
+
+CasoPrincipal
+    ├─> "caso-70" ──> 70% commission
+    ├─> "caso-45" ──> 45% commission
+    ├─> "caso-equipo-tipo-asesor" ──> Uses: TipoAsesorEquipo
+    ├─> "caso-pregunta-broker-externo" ──> Uses: FueConBrokerExterno
+    └─> "caso-pregunta-vendio" ──> Uses: QuienVendio
+
+Reparto
+    └─> Calculated by: obtenerReparto(EscenarioInput)
+```
+
+---
+
+## Related Documentation
+
+- [Calculations](/api/calculations) - Functions using these types
+- [Business Rules](/api/rules) - Reparto logic and distribution
+- [Calculator](/api/calculator) - Monetary calculations

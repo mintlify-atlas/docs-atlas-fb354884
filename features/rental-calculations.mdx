@@ -1,0 +1,281 @@
+---
+title: Rental Commission Calculations
+description: How rental property commissions are calculated in the Tabulador system
+---
+
+## Overview
+
+Rental commissions in the Tabulador system use a simplified calculation compared to sale transactions. The agent receives a fixed **45% of the rental cost** after the 7% tax deduction.
+
+<Note>
+Unlike sale transactions, rental calculations do NOT require answering scenario questions about exclusivity, listing, or closing. The commission is always 45%.
+</Note>
+
+## Rental Commission Formula
+
+The calculation follows these steps:
+
+<Steps>
+  <Step title="Principal Commission">
+    For rentals, the principal commission equals the rental cost:
+    ```typescript
+    comisionPrincipalRenta = costoNum
+    ```
+  </Step>
+  <Step title="Apply 7% Tax Deduction">
+    The 7% tax is deducted from the principal:
+    ```typescript
+    comisionNetaRenta = comisionPrincipalRenta * 0.93
+    ```
+  </Step>
+  <Step title="Calculate Agent's 45%">
+    The agent receives 45% of the net commission:
+    ```typescript
+    montoRenta = comisionNetaRenta * 0.45
+    ```
+  </Step>
+</Steps>
+
+## Code Implementation
+
+From `lib/tabulador/calculations.ts:37-57`:
+
+```typescript
+export function getBaseMontos(costo: string, comision: string): BaseMontos {
+  const costoNum = Number(costo || 0)
+  const comisionNum = Number(comision || 0)
+  
+  // Sale calculations
+  const comisionPrincipal = (costoNum * comisionNum) / 100
+  const comisionNeta = comisionPrincipal * 0.93
+  
+  // Rental calculations
+  const comisionPrincipalRenta = costoNum
+  const comisionNetaRenta = comisionPrincipalRenta * 0.93  // 7% tax deduction
+  const montoRenta = comisionNetaRenta * 0.45              // Agent gets 45%
+
+  return {
+    costoNum,
+    comisionNum,
+    comisionPrincipal,
+    comisionNeta,
+    comisionPrincipalRenta,
+    comisionNetaRenta,
+    montoRenta,
+    montoPotencial25: comisionNeta * 0.25,
+    montoPotencial20: comisionNeta * 0.2,
+    montoPotencial5: comisionNeta * 0.05,
+  }
+}
+```
+
+## Examples
+
+### Example 1: Standard Monthly Rental
+
+<Accordion title="Rental: 18,000 MXN/month">
+  **Input:**
+  - Rental cost: 18,000 MXN
+
+  **Calculation:**
+  ```typescript
+  comisionPrincipalRenta = 18,000 MXN
+  comisionNetaRenta = 18,000 × 0.93 = 16,740 MXN
+  montoRenta = 16,740 × 0.45 = 7,533 MXN
+  ```
+
+  **Agent receives:** 7,533 MXN
+</Accordion>
+
+### Example 2: High-End Rental
+
+<Accordion title="Rental: 45,000 MXN/month">
+  **Input:**
+  - Rental cost: 45,000 MXN
+
+  **Calculation:**
+  ```typescript
+  comisionPrincipalRenta = 45,000 MXN
+  comisionNetaRenta = 45,000 × 0.93 = 41,850 MXN
+  montoRenta = 41,850 × 0.45 = 18,832.50 MXN
+  ```
+
+  **Agent receives:** 18,832.50 MXN
+</Accordion>
+
+### Example 3: Budget Rental
+
+<Accordion title="Rental: 8,500 MXN/month">
+  **Input:**
+  - Rental cost: 8,500 MXN
+
+  **Calculation:**
+  ```typescript
+  comisionPrincipalRenta = 8,500 MXN
+  comisionNetaRenta = 8,500 × 0.93 = 7,905 MXN
+  montoRenta = 7,905 × 0.45 = 3,557.25 MXN
+  ```
+
+  **Agent receives:** 3,557.25 MXN
+</Accordion>
+
+## User Interface Flow
+
+From `app/page.tsx:177-220`, the rental flow is simplified:
+
+### Step 1: Select Operation Type
+
+The user first selects "Renta" as the operation type:
+
+```tsx
+<button onClick={() => setTipoOperacion("renta")}>
+  <p>Renta</p>
+  <p>Calcular ticket directo por costo.</p>
+</button>
+```
+
+### Step 2: Enter Rental Cost
+
+The user enters only the monthly rental cost (no commission percentage needed):
+
+```tsx
+<input
+  type="number"
+  placeholder="Ej. 18000"
+  value={costo}
+  onChange={(e) => setCosto(e.target.value)}
+/>
+```
+
+### Step 3: View Results
+
+Results display immediately when a valid cost is entered:
+
+```tsx
+{puedeVerResultadoRenta && (
+  <div>
+    <h3>Desglose</h3>
+    <p>
+      Te corresponde el <span>45%</span> de la comision principal que equivale a:
+    </p>
+    <p>{formatMXN(baseMontos.montoRenta)} MXN</p>
+    
+    <button onClick={descargarTicket}>
+      Descargar ticket
+    </button>
+    
+    <p>{LEYENDA_IMPUESTOS}</p>
+  </div>
+)}
+```
+
+## Validation Logic
+
+The rental results are shown when the cost is valid:
+
+```typescript
+const puedeVerResultadoRenta = useMemo(() => {
+  if (tipoOperacion !== "renta") return false
+  return baseMontos.costoNum > 0
+}, [baseMontos.costoNum, tipoOperacion])
+```
+
+**Validation requirements:**
+- Operation type must be "renta"
+- Cost must be greater than 0
+
+<Note>
+No scenario questions or follow-up questions are required for rentals. This makes the rental calculator much simpler than the sale calculator.
+</Note>
+
+## Ticket Generation for Rentals
+
+The rental ticket text is generated in `buildTicketText()` from `lib/tabulador/calculations.ts:171-185`:
+
+```typescript
+if (tipoOperacion === "renta" && puedeVerResultadoRenta) {
+  return [
+    "DESGLOSE",
+    "",
+    "Operacion: RENTA",
+    `Costo: ${formatMXN(costoNum)}`,
+    `Comision principal: ${formatMXN(comisionPrincipalRenta)}`,
+    `Comision neta (7% ya descontado): ${formatMXN(comisionNetaRenta)}`,
+    "",
+    "Te corresponde el 45% de la comision principal, equivalente a:",
+    `${formatMXN(montoRenta)} MXN`,
+    "",
+    LEYENDA_IMPUESTOS,
+  ].join("\n")
+}
+```
+
+### Sample Ticket Output
+
+```
+DESGLOSE
+
+Operacion: RENTA
+Costo: $18,000.00
+Comision principal: $18,000.00
+Comision neta (7% ya descontado): $16,740.00
+
+Te corresponde el 45% de la comision principal, equivalente a:
+$7,533.00 MXN
+
+*Este monto ya tiene el 7% de impuestos descontado
+```
+
+## Comparison: Rental vs Sale
+
+<CardGroup cols={2}>
+  <Card title="Rental Calculations" icon="key">
+    **Simpler process:**
+    - No scenario questions
+    - Fixed 45% commission
+    - Only requires rental cost
+    - Always uses 7% tax deduction
+  </Card>
+  <Card title="Sale Calculations" icon="house">
+    **Complex process:**
+    - 3 scenario questions minimum
+    - Commission varies: 7.5% to 70%
+    - Requires property price AND commission %
+    - Always uses 7% tax deduction
+  </Card>
+</CardGroup>
+
+## Tax Information
+
+<Warning>
+**7% Tax Deduction**
+
+All rental commissions automatically deduct 7% for taxes. This is displayed to users as:
+
+```
+*Este monto ya tiene el 7% de impuestos descontado
+```
+
+The net amount after deduction is used for the 45% calculation.
+</Warning>
+
+## Quick Reference
+
+| Item | Value |
+|------|-------|
+| Agent Commission | **45%** (fixed) |
+| Tax Deduction | **7%** (automatic) |
+| Input Required | Rental cost only |
+| Scenario Questions | None |
+| Formula | `costo × 0.93 × 0.45` |
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Sale Scenarios" icon="chart-line" href="/features/sale-scenarios">
+    Learn about the more complex sale commission calculations
+  </Card>
+  <Card title="Ticket Generation" icon="download" href="/features/ticket-generation">
+    Download commission calculation tickets for rentals
+  </Card>
+</CardGroup>

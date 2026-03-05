@@ -1,0 +1,376 @@
+---
+title: Sale Transaction Scenarios
+description: Detailed explanation of all sale scenarios and their commission percentages in the Tabulador system
+---
+
+## Overview
+
+The Tabulador system identifies different commission scenarios based on three primary questions answered by the agent:
+
+1. **Is it an exclusive property?** (exclusiva)
+2. **Did you list it?** (enlistaste)  
+3. **Did you sell it?** (vendiste)
+
+Based on these answers, the system determines which of 5 main scenarios applies, each with its own commission percentage.
+
+## The Three Core Questions
+
+<CardGroup cols={3}>
+  <Card title="Exclusiva" icon="star">
+    Is the property listed exclusively with Tamivar?
+  </Card>
+  <Card title="Enlistaste" icon="list">
+    Did you (the agent) list this property?
+  </Card>
+  <Card title="Vendiste" icon="handshake">
+    Did you (the agent) close/sell this property?
+  </Card>
+</CardGroup>
+
+<Note>
+At least one answer must be "Yes" for the calculator to work. If all three are "No", the system displays an alert asking the agent to select at least one "Yes" option.
+</Note>
+
+## Scenario Matrix
+
+The `getCasoPrincipal()` function maps question combinations to scenarios:
+
+```typescript
+if (exclusiva === "si" && enlistaste === "si" && vendiste === "si") 
+  return "caso-70"  // 70% commission
+
+if (exclusiva === "no" && enlistaste === "no" && vendiste === "si") 
+  return "caso-equipo-tipo-asesor"  // 25-30% commission
+
+if (exclusiva === "no" && enlistaste === "si" && vendiste === "si") 
+  return "caso-pregunta-broker-externo"  // 10-65% commission
+
+if (exclusiva === "si" && enlistaste === "no" && vendiste === "si") 
+  return "caso-45"  // 45% commission
+
+if (exclusiva === "si" && enlistaste === "si" && vendiste === "no") 
+  return "caso-pregunta-vendio"  // 15-40% commission
+```
+
+## Detailed Scenario Breakdown
+
+### Caso 70 - Full Control (70%)
+
+<Card title="Exclusive + Listed + Sold" icon="trophy">
+  **Commission:** 70% of net commission
+  
+  **Conditions:**
+  - Exclusive property: ✅ Yes
+  - Agent listed: ✅ Yes
+  - Agent sold: ✅ Yes
+  
+  **Code reference:** `lib/tabulador/calculations.ts:65`
+  
+  This is the highest commission scenario where the agent controls the entire transaction from listing to closing.
+</Card>
+
+**Example:**
+```typescript
+Property: $2,800,000 MXN
+Commission rate: 5%
+
+comisionPrincipal = 2,800,000 × 0.05 = 140,000 MXN
+comisionNeta = 140,000 × 0.93 = 130,200 MXN (7% tax deducted)
+Agent receives = 130,200 × 0.70 = 91,140 MXN
+```
+
+---
+
+### Caso 45 - Exclusive Sale Only (45%)
+
+<Card title="Exclusive + Didn't List + Sold" icon="home">
+  **Commission:** 45% of net commission
+  
+  **Conditions:**
+  - Exclusive property: ✅ Yes
+  - Agent listed: ❌ No
+  - Agent sold: ✅ Yes
+  
+  **Code reference:** `lib/tabulador/calculations.ts:68`
+  
+  The agent sells an exclusive property they didn't originally list.
+</Card>
+
+**Example:**
+```typescript
+Property: $3,200,000 MXN
+Commission rate: 5%
+
+comisionPrincipal = 3,200,000 × 0.05 = 160,000 MXN
+comisionNeta = 160,000 × 0.93 = 148,800 MXN
+Agent receives = 148,800 × 0.45 = 66,960 MXN
+```
+
+---
+
+### Caso Equipo - Team Sale (25-30%)
+
+<Card title="Non-Exclusive + Only Sold" icon="users">
+  **Commission:** 25% (solo) or 30% (team with internal advisor)
+  
+  **Conditions:**
+  - Exclusive property: ❌ No
+  - Agent listed: ❌ No  
+  - Agent sold: ✅ Yes
+  - **Follow-up question:** Was it with another advisor on your team?
+  
+  **Code reference:** `lib/tabulador/calculations.ts:66`, `lib/tabulador/calculations.ts:83-90`
+</Card>
+
+#### Subcase: Solo (25%)
+
+```typescript
+fueEnEquipoConOtroAsesor === "no" && tipoAsesorEquipo === "na"
+// Returns 25%
+```
+
+**Example:**
+```typescript
+Property: $4,000,000 MXN
+Commission rate: 4%
+
+comisionPrincipal = 4,000,000 × 0.04 = 160,000 MXN
+comisionNeta = 160,000 × 0.93 = 148,800 MXN
+Agent receives = 148,800 × 0.25 = 37,200 MXN
+```
+
+#### Subcase: Team with Internal Advisor (30%)
+
+```typescript
+fueEnEquipoConOtroAsesor === "si" && tipoAsesorEquipo === "interno"
+// Returns 30% (each advisor receives 30%)
+```
+
+**UI Message:** "A los dos asesores les corresponde el 30% de la comision principal"
+
+**Example:**
+```typescript
+Property: $4,000,000 MXN
+Commission rate: 4%
+
+comisionNeta = 148,800 MXN
+Each advisor receives = 148,800 × 0.30 = 44,640 MXN
+```
+
+#### Subcase: Team with External Advisor (7.5%)
+
+```typescript
+fueEnEquipoConOtroAsesor === "si" && tipoAsesorEquipo === "externo"
+// Returns 7.5% (can increase to 12.5%)
+```
+
+<Warning>
+**Special case:** External broker has the client, Tamivar has the property.
+
+Base commission: 7.5%  
+Potential increase: +5% with proper follow-up → 12.5% total
+</Warning>
+
+**Example:**
+```typescript
+Property: $5,000,000 MXN
+Commission rate: 3%
+
+comisionNeta = 139,500 MXN
+Agent receives (base) = 139,500 × 0.075 = 10,462.50 MXN
+Agent receives (max) = 139,500 × 0.125 = 17,437.50 MXN
+```
+
+---
+
+### Caso Broker Externo - External Broker Involvement (10-65%)
+
+<Card title="Non-Exclusive + Listed + Sold" icon="building">
+  **Commission:** 10% (with broker) or 65% (without broker)
+  
+  **Conditions:**
+  - Exclusive property: ❌ No
+  - Agent listed: ✅ Yes
+  - Agent sold: ✅ Yes
+  - **Follow-up question:** Was it with an external broker?
+  
+  **Code reference:** `lib/tabulador/calculations.ts:67`, `lib/tabulador/calculations.ts:99-100`
+</Card>
+
+#### Subcase: With External Broker (10%)
+
+```typescript
+fueConBrokerExterno === "si"
+// Returns 10% (can increase to 20%)
+```
+
+<Note>
+This commission can increase to 20% based on the agent's follow-up during the process.
+
+Potential amounts are pre-calculated:
+```typescript
+montoPotencial20: comisionNeta * 0.20
+```
+</Note>
+
+**Example:**
+```typescript
+Property: $3,500,000 MXN
+Commission rate: 4%
+
+comisionNeta = 130,200 MXN
+Agent receives (base) = 130,200 × 0.10 = 13,020 MXN
+Agent receives (max) = 130,200 × 0.20 = 26,040 MXN
+```
+
+#### Subcase: Without External Broker (65%)
+
+```typescript
+fueConBrokerExterno === "no"
+// Returns 65%
+```
+
+**Example:**
+```typescript
+Property: $3,500,000 MXN
+Commission rate: 4%
+
+comisionNeta = 130,200 MXN
+Agent receives = 130,200 × 0.65 = 84,630 MXN
+```
+
+---
+
+### Caso Quien Vendio - Listed but Didn't Close (15-40%)
+
+<Card title="Exclusive + Listed + Didn't Sell" icon="question">
+  **Commission:** 15% (external broker sold) or 40% (Tamivar sold)
+  
+  **Conditions:**
+  - Exclusive property: ✅ Yes
+  - Agent listed: ✅ Yes
+  - Agent sold: ❌ No
+  - **Follow-up question:** Who sold the property?
+  
+  **Code reference:** `lib/tabulador/calculations.ts:69`, `lib/tabulador/calculations.ts:102-103`
+</Card>
+
+#### Subcase: External Broker Sold (15%)
+
+```typescript
+quienVendio === "broker-externo"
+// Returns 15% (can increase to 25%)
+```
+
+<Note>
+This commission can increase to 25% based on the agent's follow-up during the process.
+
+Potential amounts are pre-calculated:
+```typescript
+montoPotencial25: comisionNeta * 0.25
+```
+</Note>
+
+**Example:**
+```typescript
+Property: $2,500,000 MXN
+Commission rate: 5%
+
+comisionNeta = 116,250 MXN
+Agent receives (base) = 116,250 × 0.15 = 17,437.50 MXN
+Agent receives (max) = 116,250 × 0.25 = 29,062.50 MXN
+```
+
+#### Subcase: Tamivar Sold (40%)
+
+```typescript
+quienVendio === "tamivar"
+// Returns 40%
+```
+
+**Example:**
+```typescript
+Property: $2,500,000 MXN
+Commission rate: 5%
+
+comisionNeta = 116,250 MXN
+Agent receives = 116,250 × 0.40 = 46,500 MXN
+```
+
+---
+
+## Commission Percentage Summary
+
+Here's a quick reference table of all possible commission percentages:
+
+| Scenario | Base % | Max % | Increase Condition |
+|----------|--------|-------|--------------------|
+| Caso 70 (Full control) | 70% | 70% | N/A |
+| Caso 45 (Exclusive sale) | 45% | 45% | N/A |
+| Caso Equipo Solo | 25% | 25% | N/A |
+| Caso Equipo Internal | 30% | 30% | N/A |
+| Caso Equipo External | 7.5% | 12.5% | +5% with follow-up |
+| Caso Broker No | 65% | 65% | N/A |
+| Caso Broker Si | 10% | 20% | +10% with follow-up |
+| Caso Vendio Tamivar | 40% | 40% | N/A |
+| Caso Vendio Broker | 15% | 25% | +10% with follow-up |
+
+## Potential Commission Increases
+
+The system pre-calculates potential increases for three scenarios:
+
+```typescript
+// In getBaseMontos() function:
+montoPotencial25: comisionNeta * 0.25,  // For caso-pregunta-vendio with broker-externo
+montoPotencial20: comisionNeta * 0.20,  // For caso-pregunta-broker-externo with broker
+montoPotencial5: comisionNeta * 0.05,   // For caso-equipo with external advisor
+```
+
+These potential amounts are displayed to agents with messaging like:
+
+<Accordion title="UI Messages for Potential Increases">
+  **Caso Vendio + Broker Externo:**
+  ```
+  *Puede subir a 25% segun tu seguimiento en el proceso, que equivaldria a [amount].
+  ```
+
+  **Caso Broker Externo + Si:**
+  ```
+  *Puede subir a 20% segun tu seguimiento en el proceso, que equivaldria a [amount].
+  ```
+
+  **Caso Equipo + External Advisor:**
+  ```
+  *Puede subir un 5% mas segun tu seguimiento en el proceso, que equivaldria a [amount].
+  ```
+</Accordion>
+
+## Validation Rules
+
+The system validates whether it can display results using `puedeVerResultadoVenta()` function:
+
+```typescript
+export function puedeVerResultadoVenta(params) {
+  if (tipoOperacion !== "venta") return false
+  if (!costoNum || !comisionNum) return false
+  if (!exclusiva || !enlistaste || !vendiste) return false
+  if (casoPrincipal === "caso-pregunta-vendio" && !quienVendio) return false
+  if (casoPrincipal === "caso-pregunta-broker-externo" && !fueConBrokerExterno) return false
+  if (casoPrincipal === "caso-equipo-tipo-asesor" && !fueEnEquipoConOtroAsesor) return false
+  if (casoPrincipal === "caso-equipo-tipo-asesor" && fueEnEquipoConOtroAsesor === "si" 
+      && tipoAsesorEquipo === "na") return false
+  if (!porcentajeFinal) return false
+  return true
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Calculator Overview" icon="calculator" href="/features/commission-calculator">
+    Learn about the core calculation engine
+  </Card>
+  <Card title="Download Tickets" icon="download" href="/features/ticket-generation">
+    Generate commission calculation tickets
+  </Card>
+</CardGroup>

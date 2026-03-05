@@ -1,0 +1,250 @@
+---
+title: "Business Rules"
+description: "Commission distribution rules and reparto calculations"
+---
+
+The rules module defines the core business logic for commission distribution (reparto) based on different sales scenarios.
+
+## obtenerReparto
+
+Determines the commission split between advisor, Tamivar, and optionally an external broker based on the sales scenario.
+
+```typescript
+function obtenerReparto(data: EscenarioInput): Reparto
+```
+
+<ParamField path="data" type="EscenarioInput" required>
+  <ParamField path="exclusiva" type="boolean" required>
+    Whether the property had exclusivity agreement
+  </ParamField>
+  
+  <ParamField path="origenCliente" type="'asesor' | 'tamivar' | 'broker'" required>
+    Origin of the client:
+    - `"asesor"` - Client brought by advisor
+    - `"tamivar"` - Lead from Tamivar
+    - `"broker"` - Client from external broker
+  </ParamField>
+  
+  <ParamField path="origenPropiedad" type="'asesor' | 'tamivar' | 'externa'" required>
+    Origin of the property:
+    - `"asesor"` - Property listed by advisor
+    - `"tamivar"` - Property from Tamivar inventory
+    - `"externa"` - External property
+  </ParamField>
+  
+  <ParamField path="cierreEquipo" type="boolean" required>
+    Whether the sale was closed by a team
+  </ParamField>
+</ParamField>
+
+<ResponseField name="Reparto" type="object">
+  Commission distribution percentages
+  
+  <ResponseField name="asesor" type="number" required>
+    Percentage for the advisor (0-70)
+  </ResponseField>
+  
+  <ResponseField name="tamivar" type="number" required>
+    Percentage for Tamivar (20-70)
+  </ResponseField>
+  
+  <ResponseField name="broker" type="number" optional>
+    Percentage for external broker (only when applicable)
+  </ResponseField>
+</ResponseField>
+
+## Business Rules
+
+The function implements a priority-based decision tree for commission distribution:
+
+### Rule 1: Perfect Scenario (70/30)
+**Conditions:**
+- Exclusivity: Yes
+- Client origin: Advisor
+- Property origin: Advisor
+
+**Result:** Advisor gets **70%**, Tamivar gets **30%**
+
+This is the highest commission scenario - the advisor brought both the client and the property with exclusivity.
+
+### Rule 2: Exclusive with Tamivar Lead (40/60)
+**Conditions:**
+- Exclusivity: Yes
+- Client origin: Tamivar
+
+**Result:** Advisor gets **40%**, Tamivar gets **60%**
+
+Tamivar provided the lead, so they receive a larger share despite exclusivity.
+
+### Rule 3: Non-Exclusive Advisor Sale (65/35)
+**Conditions:**
+- Exclusivity: No
+- Client origin: Advisor
+
+**Result:** Advisor gets **65%**, Tamivar gets **35%**
+
+No exclusivity but advisor brought the client, resulting in good commission.
+
+### Rule 4: Team Close (30/20)
+**Conditions:**
+- Team close: Yes
+
+**Result:** Advisor gets **30%**, Tamivar gets **20%**
+
+When multiple advisors work together, the commission is split accordingly.
+
+### Rule 5: Base Case (50/50)
+**Conditions:**
+- None of the above scenarios match
+
+**Result:** Advisor gets **50%**, Tamivar gets **50%**
+
+Default equal split for all other scenarios.
+
+## Examples
+
+<CodeGroup>
+
+```typescript Perfect Scenario - 70/30
+import { obtenerReparto } from './lib/rules'
+
+const reparto = obtenerReparto({
+  exclusiva: true,
+  origenCliente: 'asesor',
+  origenPropiedad: 'asesor',
+  cierreEquipo: false
+})
+
+console.log(reparto)
+// { asesor: 70, tamivar: 30 }
+```
+
+```typescript Tamivar Lead - 40/60
+import { obtenerReparto } from './lib/rules'
+
+const reparto = obtenerReparto({
+  exclusiva: true,
+  origenCliente: 'tamivar',
+  origenPropiedad: 'asesor',
+  cierreEquipo: false
+})
+
+console.log(reparto)
+// { asesor: 40, tamivar: 60 }
+```
+
+```typescript Non-Exclusive Sale - 65/35
+import { obtenerReparto } from './lib/rules'
+
+const reparto = obtenerReparto({
+  exclusiva: false,
+  origenCliente: 'asesor',
+  origenPropiedad: 'tamivar',
+  cierreEquipo: false
+})
+
+console.log(reparto)
+// { asesor: 65, tamivar: 35 }
+```
+
+```typescript Team Close - 30/20
+import { obtenerReparto } from './lib/rules'
+
+const reparto = obtenerReparto({
+  exclusiva: false,
+  origenCliente: 'broker',
+  origenPropiedad: 'externa',
+  cierreEquipo: true
+})
+
+console.log(reparto)
+// { asesor: 30, tamivar: 20 }
+```
+
+```typescript Base Case - 50/50
+import { obtenerReparto } from './lib/rules'
+
+const reparto = obtenerReparto({
+  exclusiva: false,
+  origenCliente: 'tamivar',
+  origenPropiedad: 'externa',
+  cierreEquipo: false
+})
+
+console.log(reparto)
+// { asesor: 50, tamivar: 50 }
+```
+
+</CodeGroup>
+
+## Complete Workflow Example
+
+```typescript
+import { obtenerReparto } from './lib/rules'
+import { calcularMontos } from './lib/calculator'
+
+// Step 1: Define the sales scenario
+const escenario = {
+  exclusiva: true,
+  origenCliente: 'asesor',
+  origenPropiedad: 'asesor',
+  cierreEquipo: false
+}
+
+// Step 2: Get commission distribution
+const reparto = obtenerReparto(escenario)
+console.log('Distribution:', reparto)
+// { asesor: 70, tamivar: 30 }
+
+// Step 3: Calculate monetary amounts
+const montos = calcularMontos(
+  5000000,  // Sale price: $5,000,000
+  3,        // Commission: 3%
+  reparto
+)
+
+console.log('Amounts:', montos)
+// {
+//   comisionTotal: "150000.00",
+//   asesor: "105000.00",
+//   tamivar: "45000.00",
+//   broker: "0.00"
+// }
+```
+
+## Decision Tree Diagram
+
+```
+Input: { exclusiva, origenCliente, origenPropiedad, cierreEquipo }
+    |
+    ├─> exclusiva=true AND origenCliente=asesor AND origenPropiedad=asesor
+    |       └─> 70/30 (Perfect Scenario)
+    |
+    ├─> exclusiva=true AND origenCliente=tamivar
+    |       └─> 40/60 (Tamivar Lead)
+    |
+    ├─> exclusiva=false AND origenCliente=asesor
+    |       └─> 65/35 (Non-Exclusive)
+    |
+    ├─> cierreEquipo=true
+    |       └─> 30/20 (Team Close)
+    |
+    └─> else
+            └─> 50/50 (Base Case)
+```
+
+## Commission Comparison Table
+
+| Scenario | Exclusiva | Origen Cliente | Origen Propiedad | Equipo | Asesor | Tamivar |
+|----------|-----------|----------------|------------------|--------|--------|----------|
+| Perfect | Yes | Asesor | Asesor | No | **70%** | 30% |
+| Non-Exclusive | No | Asesor | Any | No | **65%** | 35% |
+| Tamivar Lead | Yes | Tamivar | Any | No | **40%** | 60% |
+| Team | Any | Any | Any | Yes | **30%** | 20% |
+| Base | Any | Any | Any | No | **50%** | 50% |
+
+## Related Functions
+
+- [calcularMontos](/api/calculator) - Calculate monetary amounts from reparto
+- [getCasoPrincipal](/api/calculations#getCasoPrincipal) - Determine case scenario
+- [getPorcentajeFinal](/api/calculations#getPorcentajeFinal) - Get final percentage

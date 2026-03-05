@@ -1,0 +1,493 @@
+---
+title: "Calculations"
+description: "Core calculation functions for commission computation and business logic"
+---
+
+The calculations module contains all core functions for processing commissions, determining scenarios, and generating result tickets in the Tabulador system.
+
+## getBaseMontos
+
+Calculates all base monetary amounts from cost and commission percentage.
+
+```typescript
+function getBaseMontos(
+  costo: string,
+  comision: string
+): BaseMontos
+```
+
+<ParamField path="costo" type="string" required>
+  The property cost as a string (will be converted to number)
+</ParamField>
+
+<ParamField path="comision" type="string" required>
+  The commission percentage as a string (will be converted to number)
+</ParamField>
+
+<ResponseField name="BaseMontos" type="object">
+  Object containing all calculated monetary amounts
+  
+  <ResponseField name="costoNum" type="number">
+    Numeric value of the cost
+  </ResponseField>
+  
+  <ResponseField name="comisionNum" type="number">
+    Numeric value of the commission percentage
+  </ResponseField>
+  
+  <ResponseField name="comisionPrincipal" type="number">
+    Principal commission: `(costoNum * comisionNum) / 100`
+  </ResponseField>
+  
+  <ResponseField name="comisionNeta" type="number">
+    Net commission after 7% deduction: `comisionPrincipal * 0.93`
+  </ResponseField>
+  
+  <ResponseField name="comisionPrincipalRenta" type="number">
+    Principal commission for rent operations (equals costoNum)
+  </ResponseField>
+  
+  <ResponseField name="comisionNetaRenta" type="number">
+    Net rent commission: `comisionPrincipalRenta * 0.93`
+  </ResponseField>
+  
+  <ResponseField name="montoRenta" type="number">
+    Final rent amount (45% of net): `comisionNetaRenta * 0.45`
+  </ResponseField>
+  
+  <ResponseField name="montoPotencial25" type="number">
+    Potential 25% amount: `comisionNeta * 0.25`
+  </ResponseField>
+  
+  <ResponseField name="montoPotencial20" type="number">
+    Potential 20% amount: `comisionNeta * 0.2`
+  </ResponseField>
+  
+  <ResponseField name="montoPotencial5" type="number">
+    Potential 5% amount: `comisionNeta * 0.05`
+  </ResponseField>
+</ResponseField>
+
+### Example
+
+```typescript
+import { getBaseMontos } from './lib/tabulador/calculations'
+
+const montos = getBaseMontos('5000000', '3')
+
+console.log(montos)
+// {
+//   costoNum: 5000000,
+//   comisionNum: 3,
+//   comisionPrincipal: 150000,
+//   comisionNeta: 139500,
+//   comisionPrincipalRenta: 5000000,
+//   comisionNetaRenta: 4650000,
+//   montoRenta: 2092500,
+//   montoPotencial25: 34875,
+//   montoPotencial20: 27900,
+//   montoPotencial5: 6975
+// }
+```
+
+---
+
+## getCasoPrincipal
+
+Determines the primary case scenario based on three key questions about the operation.
+
+```typescript
+function getCasoPrincipal(
+  exclusiva: OpcionSiNo | null,
+  enlistaste: OpcionSiNo | null,
+  vendiste: OpcionSiNo | null
+): CasoPrincipal | null
+```
+
+<ParamField path="exclusiva" type="OpcionSiNo | null" required>
+  Whether the property had exclusivity ("si" | "no")
+</ParamField>
+
+<ParamField path="enlistaste" type="OpcionSiNo | null" required>
+  Whether the advisor listed the property ("si" | "no")
+</ParamField>
+
+<ParamField path="vendiste" type="OpcionSiNo | null" required>
+  Whether the advisor sold the property ("si" | "no")
+</ParamField>
+
+<ResponseField name="CasoPrincipal" type="string | null">
+  The determined case scenario:
+  - `"caso-70"` - Exclusive, listed, and sold by advisor (70% commission)
+  - `"caso-equipo-tipo-asesor"` - Non-exclusive, not listed, sold (team-based)
+  - `"caso-pregunta-broker-externo"` - Non-exclusive, listed, sold (external broker question)
+  - `"caso-45"` - Exclusive, not listed, sold (45% commission)
+  - `"caso-pregunta-vendio"` - Exclusive, listed, not sold (who sold question)
+  - `null` - No matching scenario
+</ResponseField>
+
+### Business Logic
+
+This function implements the core decision tree:
+
+| Exclusiva | Enlistaste | Vendiste | Result |
+|-----------|------------|----------|--------|
+| si | si | si | caso-70 (70%) |
+| no | no | si | caso-equipo-tipo-asesor |
+| no | si | si | caso-pregunta-broker-externo |
+| si | no | si | caso-45 (45%) |
+| si | si | no | caso-pregunta-vendio |
+
+### Example
+
+<CodeGroup>
+
+```typescript Case 70%
+import { getCasoPrincipal } from './lib/tabulador/calculations'
+
+const caso = getCasoPrincipal('si', 'si', 'si')
+console.log(caso) // "caso-70"
+```
+
+```typescript Case 45%
+import { getCasoPrincipal } from './lib/tabulador/calculations'
+
+const caso = getCasoPrincipal('si', 'no', 'si')
+console.log(caso) // "caso-45"
+```
+
+```typescript Team Case
+import { getCasoPrincipal } from './lib/tabulador/calculations'
+
+const caso = getCasoPrincipal('no', 'no', 'si')
+console.log(caso) // "caso-equipo-tipo-asesor"
+```
+
+</CodeGroup>
+
+---
+
+## getPorcentajeFinal
+
+Calculates the final commission percentage based on the case and additional parameters.
+
+```typescript
+function getPorcentajeFinal(params: {
+  casoPrincipal: CasoPrincipal | null
+  fueConBrokerExterno: FueConBrokerExterno | null
+  fueEnEquipoConOtroAsesor: OpcionSiNo | null
+  quienVendio: QuienVendio | null
+  tipoAsesorEquipo: TipoAsesorEquipo
+}): number | null
+```
+
+<ParamField path="params" type="object" required>
+  <ParamField path="casoPrincipal" type="CasoPrincipal | null" required>
+    The primary case from getCasoPrincipal
+  </ParamField>
+  
+  <ParamField path="fueConBrokerExterno" type="FueConBrokerExterno | null">
+    Whether external broker was involved ("si" | "no")
+  </ParamField>
+  
+  <ParamField path="fueEnEquipoConOtroAsesor" type="OpcionSiNo | null">
+    Whether it was a team operation ("si" | "no")
+  </ParamField>
+  
+  <ParamField path="quienVendio" type="QuienVendio | null">
+    Who made the sale ("broker-externo" | "tamivar")
+  </ParamField>
+  
+  <ParamField path="tipoAsesorEquipo" type="TipoAsesorEquipo" required>
+    Type of advisor in team ("interno" | "externo" | "na")
+  </ParamField>
+</ParamField>
+
+<ResponseField name="percentage" type="number | null">
+  The final commission percentage, or null if scenario is incomplete
+</ResponseField>
+
+### Commission Percentages by Scenario
+
+| Scenario | Conditions | Percentage |
+|----------|-----------|------------|
+| caso-70 | - | **70%** |
+| caso-45 | - | **45%** |
+| caso-equipo-tipo-asesor | Solo, no team | **25%** |
+| caso-equipo-tipo-asesor | Team, internal advisor | **30%** |
+| caso-equipo-tipo-asesor | Team, external advisor | **7.5%** |
+| caso-pregunta-broker-externo | With external broker | **10%** |
+| caso-pregunta-broker-externo | No external broker | **65%** |
+| caso-pregunta-vendio | Sold by external broker | **15%** |
+| caso-pregunta-vendio | Sold by Tamivar | **40%** |
+
+### Example
+
+<CodeGroup>
+
+```typescript High Commission (70%)
+import { getPorcentajeFinal } from './lib/tabulador/calculations'
+
+const porcentaje = getPorcentajeFinal({
+  casoPrincipal: 'caso-70',
+  fueConBrokerExterno: null,
+  fueEnEquipoConOtroAsesor: null,
+  quienVendio: null,
+  tipoAsesorEquipo: 'na'
+})
+
+console.log(porcentaje) // 70
+```
+
+```typescript Team Internal (30%)
+import { getPorcentajeFinal } from './lib/tabulador/calculations'
+
+const porcentaje = getPorcentajeFinal({
+  casoPrincipal: 'caso-equipo-tipo-asesor',
+  fueConBrokerExterno: null,
+  fueEnEquipoConOtroAsesor: 'si',
+  quienVendio: null,
+  tipoAsesorEquipo: 'interno'
+})
+
+console.log(porcentaje) // 30
+```
+
+```typescript External Broker (10%)
+import { getPorcentajeFinal } from './lib/tabulador/calculations'
+
+const porcentaje = getPorcentajeFinal({
+  casoPrincipal: 'caso-pregunta-broker-externo',
+  fueConBrokerExterno: 'si',
+  fueEnEquipoConOtroAsesor: null,
+  quienVendio: null,
+  tipoAsesorEquipo: 'na'
+})
+
+console.log(porcentaje) // 10
+```
+
+</CodeGroup>
+
+---
+
+## puedeVerResultadoVenta
+
+Validates whether all required information is present to display sale results.
+
+```typescript
+function puedeVerResultadoVenta(params: {
+  casoPrincipal: CasoPrincipal | null
+  comisionNum: number
+  costoNum: number
+  enlistaste: OpcionSiNo | null
+  exclusiva: OpcionSiNo | null
+  fueConBrokerExterno: FueConBrokerExterno | null
+  fueEnEquipoConOtroAsesor: OpcionSiNo | null
+  porcentajeFinal: number | null
+  tipoAsesorEquipo: TipoAsesorEquipo
+  quienVendio: QuienVendio | null
+  tipoOperacion: TipoOperacion | null
+  vendiste: OpcionSiNo | null
+}): boolean
+```
+
+<ParamField path="params" type="object" required>
+  Complete set of operation parameters to validate
+</ParamField>
+
+<ResponseField name="canDisplay" type="boolean">
+  `true` if all required fields are present and valid, `false` otherwise
+</ResponseField>
+
+### Validation Rules
+
+Returns `false` if any of these conditions are true:
+- Operation type is not "venta"
+- Cost or commission is missing/zero
+- Any of exclusiva, enlistaste, or vendiste is null
+- Case requires quienVendio but it's null
+- Case requires fueConBrokerExterno but it's null
+- Case requires team info but it's incomplete
+- Final percentage is null
+
+### Example
+
+```typescript
+import { puedeVerResultadoVenta } from './lib/tabulador/calculations'
+
+const puede = puedeVerResultadoVenta({
+  casoPrincipal: 'caso-70',
+  comisionNum: 3,
+  costoNum: 5000000,
+  enlistaste: 'si',
+  exclusiva: 'si',
+  fueConBrokerExterno: null,
+  fueEnEquipoConOtroAsesor: null,
+  porcentajeFinal: 70,
+  tipoAsesorEquipo: 'na',
+  quienVendio: null,
+  tipoOperacion: 'venta',
+  vendiste: 'si'
+})
+
+console.log(puede) // true
+```
+
+---
+
+## buildTicketText
+
+Generates the formatted result text (ticket) with commission breakdown.
+
+```typescript
+function buildTicketText(params: TicketInput): string
+```
+
+<ParamField path="params" type="TicketInput" required>
+  Complete ticket input including all base amounts and operation details
+</ParamField>
+
+<ResponseField name="ticket" type="string">
+  Formatted multiline string with commission breakdown, or empty string if results cannot be shown
+</ResponseField>
+
+### Ticket Format (Venta)
+
+For sale operations, the ticket includes:
+- Operation type header
+- Property cost
+- Principal commission with percentage
+- Net commission (7% already deducted)
+- Final amount with percentage breakdown
+- Potential increase notes (case-specific)
+- Tax disclaimer
+
+### Ticket Format (Renta)
+
+For rent operations:
+- Operation type: RENTA
+- Cost
+- Principal commission
+- Net commission (7% deducted)
+- 45% of principal commission amount
+- Tax disclaimer
+
+### Special Cases
+
+**Team Internal Advisors** (`caso-equipo-tipo-asesor` + `interno`):
+- Shows "Both advisors receive 30% of principal commission"
+
+**External Broker Property** (`caso-equipo-tipo-asesor` + `externo`):
+- Shows special message about external broker having client
+- Tamivar has the property
+- Advisor receives 7.5%
+
+**Potential Increases**:
+- `caso-pregunta-vendio` + `broker-externo`: Can increase to 25%
+- `caso-pregunta-broker-externo` + `si`: Can increase to 20%
+- `caso-equipo-tipo-asesor` + `externo`: Can increase by 5%
+
+### Example
+
+<CodeGroup>
+
+```typescript Sale Operation
+import { buildTicketText } from './lib/tabulador/calculations'
+import { getBaseMontos } from './lib/tabulador/calculations'
+
+const montos = getBaseMontos('5000000', '3')
+
+const ticket = buildTicketText({
+  ...montos,
+  casoPrincipal: 'caso-70',
+  fueConBrokerExterno: null,
+  fueEnEquipoConOtroAsesor: null,
+  porcentajeFinal: 70,
+  puedeVerResultado: true,
+  puedeVerResultadoRenta: false,
+  quienVendio: null,
+  tipoAsesorEquipo: 'na',
+  tipoOperacion: 'venta'
+})
+
+console.log(ticket)
+// DESGLOSE
+//
+// Operacion: VENTA
+// Costo de propiedad: $5,000,000.00
+// Comision principal (3%): $150,000.00
+// Comision neta (7% ya descontado): $139,500.00
+//
+// Te corresponde el 70% de la comision principal, equivalente a:
+// $97,650.00 MXN
+//
+// *Impuestos no incluidos
+```
+
+```typescript Rent Operation
+import { buildTicketText } from './lib/tabulador/calculations'
+import { getBaseMontos } from './lib/tabulador/calculations'
+
+const montos = getBaseMontos('25000', '0')
+
+const ticket = buildTicketText({
+  ...montos,
+  casoPrincipal: null,
+  fueConBrokerExterno: null,
+  fueEnEquipoConOtroAsesor: null,
+  porcentajeFinal: null,
+  puedeVerResultado: false,
+  puedeVerResultadoRenta: true,
+  quienVendio: null,
+  tipoAsesorEquipo: 'na',
+  tipoOperacion: 'renta'
+})
+
+console.log(ticket)
+// DESGLOSE
+//
+// Operacion: RENTA
+// Costo: $25,000.00
+// Comision principal: $25,000.00
+// Comision neta (7% ya descontado): $23,250.00
+//
+// Te corresponde el 45% de la comision principal, equivalente a:
+// $10,462.50 MXN
+//
+// *Impuestos no incluidos
+```
+
+```typescript With Potential Increase
+import { buildTicketText } from './lib/tabulador/calculations'
+import { getBaseMontos } from './lib/tabulador/calculations'
+
+const montos = getBaseMontos('5000000', '3')
+
+const ticket = buildTicketText({
+  ...montos,
+  casoPrincipal: 'caso-pregunta-broker-externo',
+  fueConBrokerExterno: 'si',
+  fueEnEquipoConOtroAsesor: null,
+  porcentajeFinal: 10,
+  puedeVerResultado: true,
+  puedeVerResultadoRenta: false,
+  quienVendio: null,
+  tipoAsesorEquipo: 'na',
+  tipoOperacion: 'venta'
+})
+
+// Includes note:
+// *Puede subir a 20% segun tu seguimiento en el proceso,
+//  que equivaldria a $27,900.00.
+```
+
+</CodeGroup>
+
+---
+
+## Related Functions
+
+- [formatMXN](/api/format) - Currency formatting used in tickets
+- [obtenerReparto](/api/rules) - Business rules for commission distribution
+- [Type Definitions](/api/types) - TypeScript types used throughout
